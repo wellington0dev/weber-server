@@ -23,6 +23,10 @@ export class User {
   @Column()
   password: string;
 
+  // 1 = admin (first registered user), 2 = regular user
+  @Column({ default: 2 })
+  accessLevel!: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

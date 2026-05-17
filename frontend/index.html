@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weber Server</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #38bdf8; }
+    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 420px; margin-bottom: 1.5rem; }
+    input { width: 100%; padding: 0.6rem 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 0.9rem; margin-bottom: 0.75rem; }
+    input:focus { outline: none; border-color: #38bdf8; }
+    button.primary { width: 100%; padding: 0.65rem; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    button.primary:hover { background: #7dd3fc; }
+    button.sm { padding: 0.3rem 0.75rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
+    button.success { background: #22c55e; color: #fff; }
+    .msg { margin-top: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.85rem; }
+    .msg.ok { background: #14532d; color: #86efac; }
+    .msg.err { background: #450a0a; color: #fca5a5; }
+    .hidden { display: none !important; }
+    #dashboard { width: 100%; max-width: 720px; }
+    .user-info { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+    .badge.admin { background: #7c3aed; color: #ede9fe; }
+    .badge.user { background: #334155; color: #94a3b8; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 0.6rem; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #334155; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.6rem; font-size: 0.85rem; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+    select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+    .logout { background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; }
+    .logout:hover { border-color: #ef4444; color: #ef4444; }
+    header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 720px; margin-bottom: 1.5rem; }
+    .subtitle { font-size: 0.8rem; color: #475569; margin-top: 0.25rem; }
+    .divider { border: none; border-top: 1px solid #334155; margin: 1rem 0; }
+    .inline-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; align-items: start; margin-bottom: 0.75rem; }
+    .inline-form input { margin-bottom: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH PANEL -->
+  <div id="auth-panel">
+    <h1>Weber Server</h1>
+
+    <!-- BOOTSTRAP: criar primeiro admin -->
+    <div id="setup-card" class="card hidden">
+      <h2>Configuração Inicial</h2>
+      <p class="subtitle" style="margin-bottom:1rem">Nenhum usuário cadastrado. Crie o primeiro admin.</p>
+      <input type="text" id="setup-name" placeholder="Nome" />
+      <input type="email" id="setup-email" placeholder="Email" />
+      <input type="password" id="setup-password" placeholder="Senha" />
+      <button class="primary" onclick="doSetup()">Criar Admin</button>
+      <div id="setup-msg" class="msg hidden"></div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-card" class="card hidden">
+      <h2>Login</h2>
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Senha" />
+      <button class="primary" onclick="doLogin()">Entrar</button>
+      <div id="login-msg" class="msg hidden"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <header>
+      <h1>Weber Server</h1>
+      <button class="logout" onclick="doLogout()">Sair</button>
+    </header>
+
+    <div class="user-info">
+      <div>
+        <div style="font-weight:600" id="dash-name"></div>
+        <div style="font-size:0.8rem;color:#64748b" id="dash-email"></div>
+      </div>
+      <span class="badge" id="dash-badge"></span>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div id="admin-panel" class="hidden">
+      <div class="card" style="max-width:100%">
+        <h2>Usuários</h2>
+
+        <!-- Criar novo usuário -->
+        <div class="inline-form">
+          <input type="text" id="new-name" placeholder="Nome" />
+          <input type="email" id="new-email" placeholder="Email" />
+          <input type="password" id="new-password" placeholder="Senha" />
+          <button class="sm success" onclick="createUser()" style="padding:0.6rem 1rem">+ Criar</button>
+        </div>
+        <div id="create-msg" class="msg hidden"></div>
+
+        <hr class="divider" />
+
+        <div id="admin-msg" class="msg hidden" style="margin-bottom:0.75rem"></div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nome</th>
+              <th>Email</th>
+              <th>Nível</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:3000';
+    let token = localStorage.getItem('token');
+    let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+    function showMsg(id, text, isOk) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'msg ' + (isOk ? 'ok' : 'err');
+    }
+
+    async function init() {
+      if (token && currentUser) { showDashboard(); return; }
+      const res = await fetch(`${API}/auth/status`);
+      const { bootstrapped } = await res.json();
+      if (bootstrapped) {
+        document.getElementById('login-card').classList.remove('hidden');
+      } else {
+        document.getElementById('setup-card').classList.remove('hidden');
+      }
+    }
+
+    async function doSetup() {
+      const name = document.getElementById('setup-name').value.trim();
+      const email = document.getElementById('setup-email').value.trim();
+      const password = document.getElementById('setup-password').value;
+      try {
+        const res = await fetch(`${API}/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro ao criar admin');
+        showMsg('setup-msg', 'Admin criado! Faça login.', true);
+        setTimeout(() => {
+          document.getElementById('setup-card').classList.add('hidden');
+          document.getElementById('login-card').classList.remove('hidden');
+        }, 1200);
+      } catch (e) {
+        showMsg('setup-msg', e.message, false);
+      }
+    }
+
+    async function doLogin() {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro ao fazer login');
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showDashboard();
+      } catch (e) {
+        showMsg('login-msg', e.message, false);
+      }
+    }
+
+    function showDashboard() {
+      document.getElementById('auth-panel').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('dash-name').textContent = currentUser.name;
+      document.getElementById('dash-email').textContent = currentUser.email;
+      const badge = document.getElementById('dash-badge');
+      if (currentUser.accessLevel === 1) {
+        badge.textContent = 'Admin';
+        badge.className = 'badge admin';
+        document.getElementById('admin-panel').classList.remove('hidden');
+        loadUsers();
+      } else {
+        badge.textContent = 'Usuário';
+        badge.className = 'badge user';
+      }
+    }
+
+    async function createUser() {
+      const name = document.getElementById('new-name').value.trim();
+      const email = document.getElementById('new-email').value.trim();
+      const password = document.getElementById('new-password').value;
+      try {
+        const res = await fetch(`${API}/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro ao criar usuário');
+        showMsg('create-msg', `Usuário "${data.name}" criado.`, true);
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-email').value = '';
+        document.getElementById('new-password').value = '';
+        loadUsers();
+      } catch (e) {
+        showMsg('create-msg', e.message, false);
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API}/users`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const users = await res.json();
+        if (!res.ok) throw new Error(users.message || 'Erro');
+        const tbody = document.getElementById('users-tbody');
+        tbody.innerHTML = '';
+        users.forEach(u => {
+          const isMe = u.id === currentUser.id;
+          const locked = isMe || u.accessLevel === 1;
+          tbody.innerHTML += `
+            <tr>
+              <td>${u.id}</td>
+              <td>${u.name}${isMe ? ' <span style="color:#38bdf8;font-size:0.75rem">(você)</span>' : ''}</td>
+              <td style="color:#64748b">${u.email}</td>
+              <td>
+                <select id="sel-${u.id}" ${locked ? 'disabled' : ''}>
+                  <option value="1" ${u.accessLevel === 1 ? 'selected' : ''}>Admin</option>
+                  <option value="2" ${u.accessLevel === 2 ? 'selected' : ''}>Usuário</option>
+                </select>
+              </td>
+              <td>
+                ${locked
+                  ? '<span style="color:#334155;font-size:0.8rem">—</span>'
+                  : `<button class="sm success" onclick="saveAccess(${u.id})">Salvar</button>`}
+              </td>
+            </tr>`;
+        });
+      } catch (e) {
+        showMsg('admin-msg', e.message, false);
+      }
+    }
+
+    async function saveAccess(userId) {
+      const accessLevel = parseInt(document.getElementById(`sel-${userId}`).value);
+      try {
+        const res = await fetch(`${API}/users/${userId}/access-level`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ accessLevel }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro');
+        showMsg('admin-msg', `Nível de ${data.name} atualizado.`, true);
+        loadUsers();
+      } catch (e) {
+        showMsg('admin-msg', e.message, false);
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      token = null;
+      currentUser = null;
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('auth-panel').classList.remove('hidden');
+      init();
+    }
+
+    init();
+  </script>
+</body>
+</html>
