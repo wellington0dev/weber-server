@@ -6,110 +6,240 @@
   <title>Weber Server</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #38bdf8; }
-    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; width: 100%; max-width: 420px; margin-bottom: 1.5rem; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+
+    /* ── layout ── */
+    .screen { width: 100%; max-width: 480px; display: none; }
+    .screen.wide { max-width: 720px; }
+    .screen.active { display: block; }
+
+    /* ── topbar ── */
+    .topbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.75rem; }
+    .back-btn { background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 0.4rem 0.8rem; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; transition: all 0.15s; }
+    .back-btn:hover { border-color: #38bdf8; color: #38bdf8; }
+    .page-title { font-size: 1.1rem; font-weight: 600; color: #e2e8f0; }
+    .topbar-right { margin-left: auto; }
+
+    /* ── auth card ── */
+    .app-title { font-size: 1.6rem; font-weight: 700; color: #38bdf8; margin-bottom: 1.75rem; text-align: center; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+    .card-title { font-size: 0.75rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem; }
     input { width: 100%; padding: 0.6rem 0.75rem; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; font-size: 0.9rem; margin-bottom: 0.75rem; }
     input:focus { outline: none; border-color: #38bdf8; }
-    button.primary { width: 100%; padding: 0.65rem; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+    .subtitle { font-size: 0.82rem; color: #475569; margin-bottom: 1rem; line-height: 1.5; }
+
+    /* ── buttons ── */
+    button.primary { width: 100%; padding: 0.65rem; background: #38bdf8; color: #0f172a; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem; transition: background 0.15s; }
     button.primary:hover { background: #7dd3fc; }
+    button.ghost { background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; transition: all 0.15s; }
+    button.ghost:hover { border-color: #ef4444; color: #ef4444; }
     button.sm { padding: 0.3rem 0.75rem; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; }
-    button.success { background: #22c55e; color: #fff; }
-    .msg { margin-top: 0.75rem; padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.85rem; }
+    button.green { background: #22c55e; color: #fff; }
+    button.green:hover { background: #16a34a; }
+
+    /* ── hub grid ── */
+    .hub-header { text-align: center; margin-bottom: 2rem; }
+    .hub-name { font-size: 1.25rem; font-weight: 700; }
+    .hub-email { font-size: 0.82rem; color: #64748b; margin-top: 0.2rem; }
+    .nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .nav-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem 1.25rem; cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; gap: 0.5rem; }
+    .nav-card:hover { border-color: #38bdf8; background: #1e3a4a; }
+    .nav-card .icon { font-size: 1.6rem; }
+    .nav-card .label { font-weight: 600; font-size: 0.95rem; }
+    .nav-card .desc { font-size: 0.78rem; color: #64748b; }
+
+    /* ── badges ── */
+    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+    .badge.admin { background: #7c3aed; color: #ede9fe; }
+    .badge.user { background: #334155; color: #94a3b8; }
+
+    /* ── messages ── */
+    .msg { padding: 0.6rem 0.75rem; border-radius: 8px; font-size: 0.85rem; margin-top: 0.75rem; }
     .msg.ok { background: #14532d; color: #86efac; }
     .msg.err { background: #450a0a; color: #fca5a5; }
     .hidden { display: none !important; }
-    #dashboard { width: 100%; max-width: 720px; }
-    .user-info { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
-    .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
-    .badge.admin { background: #7c3aed; color: #ede9fe; }
-    .badge.user { background: #334155; color: #94a3b8; }
-    table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 0.6rem; font-size: 0.75rem; color: #64748b; border-bottom: 1px solid #334155; text-transform: uppercase; letter-spacing: 0.05em; }
-    td { padding: 0.6rem; font-size: 0.85rem; border-bottom: 1px solid #1e293b; vertical-align: middle; }
-    select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
-    .logout { background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 8px; padding: 0.4rem 1rem; cursor: pointer; font-size: 0.85rem; }
-    .logout:hover { border-color: #ef4444; color: #ef4444; }
-    header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 720px; margin-bottom: 1.5rem; }
-    .subtitle { font-size: 0.8rem; color: #475569; margin-top: 0.25rem; }
-    .divider { border: none; border-top: 1px solid #334155; margin: 1rem 0; }
+
+    /* ── profile ── */
+    .profile-field { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0; border-bottom: 1px solid #1e293b; font-size: 0.9rem; }
+    .profile-field:last-child { border-bottom: none; }
+    .profile-label { color: #64748b; font-size: 0.8rem; }
+
+    /* ── users table ── */
     .inline-form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.5rem; align-items: start; margin-bottom: 0.75rem; }
     .inline-form input { margin-bottom: 0; }
+    hr.divider { border: none; border-top: 1px solid #334155; margin: 1rem 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 0.6rem; font-size: 0.72rem; color: #64748b; border-bottom: 1px solid #334155; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 0.6rem; font-size: 0.85rem; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+    select { background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #e2e8f0; padding: 0.3rem 0.5rem; font-size: 0.8rem; }
+
+    /* ── medias ── */
+    .dl-form { display: flex; gap: 0.5rem; align-items: stretch; margin-bottom: 0.75rem; }
+    .dl-form input { margin-bottom: 0; flex: 1; }
+    .dl-form select { flex-shrink: 0; border-radius: 8px; padding: 0.6rem 0.5rem; }
+    .dl-form button { flex-shrink: 0; padding: 0 1.1rem; border-radius: 8px; border: none; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer; font-size: 0.88rem; white-space: nowrap; }
+    .dl-form button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #0f172a; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .player-wrap { background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 1rem; position: relative; }
+    .player-wrap video, .player-wrap audio { width: 100%; display: block; }
+    .player-wrap audio { padding: 0.75rem; background: #1e293b; }
+    .player-close { position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.6); border: none; color: #fff; border-radius: 6px; padding: 0.25rem 0.5rem; cursor: pointer; font-size: 0.8rem; }
+    .media-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .media-card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; display: flex; gap: 0.9rem; padding: 0.75rem; align-items: flex-start; transition: border-color 0.15s; }
+    .media-card.playing { border-color: #38bdf8; }
+    .media-thumb { width: 90px; height: 56px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: #0f172a; }
+    .media-thumb-placeholder { width: 90px; height: 56px; border-radius: 6px; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .media-info { flex: 1; min-width: 0; }
+    .media-title { font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.3rem; }
+    .media-meta { font-size: 0.75rem; color: #64748b; display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .fmt-badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+    .fmt-badge.video { background: #1d4ed8; color: #bfdbfe; }
+    .fmt-badge.audio { background: #7c3aed; color: #ede9fe; }
+    .media-actions { display: flex; gap: 0.4rem; }
+    .btn-play { background: #38bdf8; color: #0f172a; border: none; border-radius: 6px; padding: 0.3rem 0.7rem; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+    .btn-play:hover { background: #7dd3fc; }
+    .btn-del { background: transparent; border: 1px solid #334155; color: #64748b; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.78rem; cursor: pointer; }
+    .btn-del:hover { border-color: #ef4444; color: #ef4444; }
+    .empty-state { text-align: center; padding: 2rem; color: #475569; font-size: 0.88rem; }
   </style>
 </head>
 <body>
 
-  <!-- AUTH PANEL -->
-  <div id="auth-panel">
-    <h1>Weber Server</h1>
+  <!-- ══ AUTH ══ -->
+  <div id="screen-auth" class="screen active">
+    <div class="app-title">Weber Server</div>
 
-    <!-- BOOTSTRAP: criar primeiro admin -->
     <div id="setup-card" class="card hidden">
-      <h2>Configuração Inicial</h2>
-      <p class="subtitle" style="margin-bottom:1rem">Nenhum usuário cadastrado. Crie o primeiro admin.</p>
-      <input type="text" id="setup-name" placeholder="Nome" />
-      <input type="email" id="setup-email" placeholder="Email" />
+      <div class="card-title">Configuração Inicial</div>
+      <p class="subtitle">Nenhum usuário cadastrado. Crie o primeiro admin.</p>
+      <input type="text"     id="setup-name"     placeholder="Nome" />
+      <input type="email"    id="setup-email"    placeholder="Email" />
       <input type="password" id="setup-password" placeholder="Senha" />
       <button class="primary" onclick="doSetup()">Criar Admin</button>
       <div id="setup-msg" class="msg hidden"></div>
     </div>
 
-    <!-- LOGIN -->
     <div id="login-card" class="card hidden">
-      <h2>Login</h2>
-      <input type="email" id="login-email" placeholder="Email" />
+      <div class="card-title">Login</div>
+      <input type="email"    id="login-email"    placeholder="Email" />
       <input type="password" id="login-password" placeholder="Senha" />
       <button class="primary" onclick="doLogin()">Entrar</button>
       <div id="login-msg" class="msg hidden"></div>
     </div>
   </div>
 
-  <!-- DASHBOARD -->
-  <div id="dashboard" class="hidden">
-    <header>
-      <h1>Weber Server</h1>
-      <button class="logout" onclick="doLogout()">Sair</button>
-    </header>
-
-    <div class="user-info">
-      <div>
-        <div style="font-weight:600" id="dash-name"></div>
-        <div style="font-size:0.8rem;color:#64748b" id="dash-email"></div>
+  <!-- ══ HUB ══ -->
+  <div id="screen-hub" class="screen">
+    <div class="hub-header">
+      <div class="hub-name" id="hub-name"></div>
+      <div class="hub-email" id="hub-email"></div>
+      <span class="badge" id="hub-badge" style="margin-top:0.5rem"></span>
+    </div>
+    <div class="nav-grid" id="nav-grid">
+      <div class="nav-card" onclick="go('profile')">
+        <span class="icon">👤</span>
+        <span class="label">Perfil</span>
+        <span class="desc">Seus dados de acesso</span>
       </div>
-      <span class="badge" id="dash-badge"></span>
+      <div class="nav-card" onclick="go('medias')">
+        <span class="icon">🎬</span>
+        <span class="label">Mídias</span>
+        <span class="desc">Seus vídeos e áudios</span>
+      </div>
+      <!-- admin cards injetados via JS -->
+    </div>
+    <div style="text-align:center;margin-top:1.5rem">
+      <button class="ghost" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+
+  <!-- ══ PERFIL ══ -->
+  <div id="screen-profile" class="screen">
+    <div class="topbar">
+      <button class="back-btn" onclick="go('hub')">← Voltar</button>
+      <span class="page-title">Perfil</span>
+    </div>
+    <div class="card">
+      <div class="profile-field">
+        <span class="profile-label">Nome</span>
+        <span id="prof-name"></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-label">Email</span>
+        <span id="prof-email"></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-label">Nível de acesso</span>
+        <span id="prof-badge"></span>
+      </div>
+      <div class="profile-field">
+        <span class="profile-label">Membro desde</span>
+        <span id="prof-since"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MÍDIAS ══ -->
+  <div id="screen-medias" class="screen wide">
+    <div class="topbar">
+      <button class="back-btn" onclick="go('hub')">← Voltar</button>
+      <span class="page-title">Mídias</span>
     </div>
 
-    <!-- ADMIN PANEL -->
-    <div id="admin-panel" class="hidden">
-      <div class="card" style="max-width:100%">
-        <h2>Usuários</h2>
+    <!-- player -->
+    <div id="player-wrap" class="player-wrap hidden">
+      <button class="player-close" onclick="closePlayer()">✕ fechar</button>
+      <video id="media-video" controls style="display:none"></video>
+      <audio id="media-audio" controls style="display:none"></audio>
+    </div>
 
-        <!-- Criar novo usuário -->
-        <div class="inline-form">
-          <input type="text" id="new-name" placeholder="Nome" />
-          <input type="email" id="new-email" placeholder="Email" />
-          <input type="password" id="new-password" placeholder="Senha" />
-          <button class="sm success" onclick="createUser()" style="padding:0.6rem 1rem">+ Criar</button>
-        </div>
-        <div id="create-msg" class="msg hidden"></div>
-
-        <hr class="divider" />
-
-        <div id="admin-msg" class="msg hidden" style="margin-bottom:0.75rem"></div>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nome</th>
-              <th>Email</th>
-              <th>Nível</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody id="users-tbody"></tbody>
-        </table>
+    <!-- download form -->
+    <div class="card" style="max-width:100%;margin-bottom:1rem">
+      <div class="card-title">Baixar mídia</div>
+      <div class="dl-form">
+        <input type="url" id="dl-url" placeholder="Cole a URL do vídeo…" />
+        <select id="dl-format">
+          <option value="video">Vídeo</option>
+          <option value="audio">Áudio</option>
+        </select>
+        <button id="dl-btn" onclick="downloadMedia()">Baixar</button>
       </div>
+      <div id="dl-msg" class="msg hidden"></div>
+    </div>
+
+    <!-- list -->
+    <div id="media-list" class="media-list"></div>
+  </div>
+
+  <!-- ══ USUÁRIOS (admin) ══ -->
+  <div id="screen-users" class="screen wide">
+    <div class="topbar">
+      <button class="back-btn" onclick="go('hub')">← Voltar</button>
+      <span class="page-title">Usuários</span>
+    </div>
+    <div class="card" style="max-width:100%">
+      <div class="card-title">Novo Usuário</div>
+      <div class="inline-form">
+        <input type="text"     id="new-name"     placeholder="Nome" />
+        <input type="email"    id="new-email"    placeholder="Email" />
+        <input type="password" id="new-password" placeholder="Senha" />
+        <button class="sm green" onclick="createUser()" style="padding:0.6rem 1rem">+ Criar</button>
+      </div>
+      <div id="create-msg" class="msg hidden"></div>
+
+      <hr class="divider" />
+
+      <div class="card-title">Lista</div>
+      <div id="users-msg" class="msg hidden" style="margin-bottom:0.75rem"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Nome</th><th>Email</th><th>Nível</th><th>Ação</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -118,14 +248,25 @@
     let token = localStorage.getItem('token');
     let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
+    /* ── navigation ── */
+    function go(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + screenId).classList.add('active');
+      if (screenId === 'users')  loadUsers();
+      if (screenId === 'profile') fillProfile();
+      if (screenId === 'medias') loadMedias();
+      if (screenId !== 'medias') closePlayer();
+    }
+
     function showMsg(id, text, isOk) {
       const el = document.getElementById(id);
       el.textContent = text;
       el.className = 'msg ' + (isOk ? 'ok' : 'err');
     }
 
+    /* ── init ── */
     async function init() {
-      if (token && currentUser) { showDashboard(); return; }
+      if (token && currentUser) { showHub(); return; }
       const res = await fetch(`${API}/auth/status`);
       const { bootstrapped } = await res.json();
       if (bootstrapped) {
@@ -135,9 +276,10 @@
       }
     }
 
+    /* ── auth ── */
     async function doSetup() {
-      const name = document.getElementById('setup-name').value.trim();
-      const email = document.getElementById('setup-email').value.trim();
+      const name     = document.getElementById('setup-name').value.trim();
+      const email    = document.getElementById('setup-email').value.trim();
       const password = document.getElementById('setup-password').value;
       try {
         const res = await fetch(`${API}/auth/register`, {
@@ -146,19 +288,17 @@
           body: JSON.stringify({ name, email, password }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Erro ao criar admin');
+        if (!res.ok) throw new Error(data.message || 'Erro');
         showMsg('setup-msg', 'Admin criado! Faça login.', true);
         setTimeout(() => {
           document.getElementById('setup-card').classList.add('hidden');
           document.getElementById('login-card').classList.remove('hidden');
         }, 1200);
-      } catch (e) {
-        showMsg('setup-msg', e.message, false);
-      }
+      } catch (e) { showMsg('setup-msg', e.message, false); }
     }
 
     async function doLogin() {
-      const email = document.getElementById('login-email').value.trim();
+      const email    = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
       try {
         const res = await fetch(`${API}/auth/login`, {
@@ -172,32 +312,62 @@
         currentUser = data.user;
         localStorage.setItem('token', token);
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
-        showDashboard();
-      } catch (e) {
-        showMsg('login-msg', e.message, false);
-      }
+        showHub();
+      } catch (e) { showMsg('login-msg', e.message, false); }
     }
 
-    function showDashboard() {
-      document.getElementById('auth-panel').classList.add('hidden');
-      document.getElementById('dashboard').classList.remove('hidden');
-      document.getElementById('dash-name').textContent = currentUser.name;
-      document.getElementById('dash-email').textContent = currentUser.email;
-      const badge = document.getElementById('dash-badge');
+    function doLogout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('currentUser');
+      token = null; currentUser = null;
+      go('auth');
+      document.getElementById('login-card').classList.remove('hidden');
+      document.getElementById('setup-card').classList.add('hidden');
+    }
+
+    /* ── hub ── */
+    function showHub() {
+      document.getElementById('hub-name').textContent  = currentUser.name;
+      document.getElementById('hub-email').textContent = currentUser.email;
+      const badge = document.getElementById('hub-badge');
       if (currentUser.accessLevel === 1) {
         badge.textContent = 'Admin';
-        badge.className = 'badge admin';
-        document.getElementById('admin-panel').classList.remove('hidden');
-        loadUsers();
+        badge.className   = 'badge admin';
+        const grid = document.getElementById('nav-grid');
+        if (!document.getElementById('nav-card-users')) {
+          grid.insertAdjacentHTML('beforeend', `
+            <div class="nav-card" id="nav-card-users" onclick="go('users')">
+              <span class="icon">👥</span>
+              <span class="label">Usuários</span>
+              <span class="desc">Gerenciar contas</span>
+            </div>
+          `);
+        }
       } else {
         badge.textContent = 'Usuário';
-        badge.className = 'badge user';
+        badge.className   = 'badge user';
+      }
+      go('hub');
+    }
+
+    /* ── profile ── */
+    function fillProfile() {
+      document.getElementById('prof-name').textContent  = currentUser.name;
+      document.getElementById('prof-email').textContent = currentUser.email;
+      document.getElementById('prof-since').textContent =
+        new Date(currentUser.createdAt).toLocaleDateString('pt-BR');
+      const b = document.getElementById('prof-badge');
+      if (currentUser.accessLevel === 1) {
+        b.innerHTML = '<span class="badge admin">Admin</span>';
+      } else {
+        b.innerHTML = '<span class="badge user">Usuário</span>';
       }
     }
 
+    /* ── users (admin) ── */
     async function createUser() {
-      const name = document.getElementById('new-name').value.trim();
-      const email = document.getElementById('new-email').value.trim();
+      const name     = document.getElementById('new-name').value.trim();
+      const email    = document.getElementById('new-email').value.trim();
       const password = document.getElementById('new-password').value;
       try {
         const res = await fetch(`${API}/users`, {
@@ -206,15 +376,13 @@
           body: JSON.stringify({ name, email, password }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Erro ao criar usuário');
+        if (!res.ok) throw new Error(data.message || 'Erro');
         showMsg('create-msg', `Usuário "${data.name}" criado.`, true);
         document.getElementById('new-name').value = '';
         document.getElementById('new-email').value = '';
         document.getElementById('new-password').value = '';
         loadUsers();
-      } catch (e) {
-        showMsg('create-msg', e.message, false);
-      }
+      } catch (e) { showMsg('create-msg', e.message, false); }
     }
 
     async function loadUsers() {
@@ -227,7 +395,7 @@
         const tbody = document.getElementById('users-tbody');
         tbody.innerHTML = '';
         users.forEach(u => {
-          const isMe = u.id === currentUser.id;
+          const isMe   = u.id === currentUser.id;
           const locked = isMe || u.accessLevel === 1;
           tbody.innerHTML += `
             <tr>
@@ -243,13 +411,11 @@
               <td>
                 ${locked
                   ? '<span style="color:#334155;font-size:0.8rem">—</span>'
-                  : `<button class="sm success" onclick="saveAccess(${u.id})">Salvar</button>`}
+                  : `<button class="sm green" onclick="saveAccess(${u.id})">Salvar</button>`}
               </td>
             </tr>`;
         });
-      } catch (e) {
-        showMsg('admin-msg', e.message, false);
-      }
+      } catch (e) { showMsg('users-msg', e.message, false); }
     }
 
     async function saveAccess(userId) {
@@ -262,21 +428,148 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Erro');
-        showMsg('admin-msg', `Nível de ${data.name} atualizado.`, true);
+        showMsg('users-msg', `Nível de ${data.name} atualizado.`, true);
         loadUsers();
+      } catch (e) { showMsg('users-msg', e.message, false); }
+    }
+
+    /* ── medias ── */
+    function fmtDuration(s) {
+      if (!s) return '—';
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return h ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+               : `${m}:${String(sec).padStart(2,'0')}`;
+    }
+
+    function fmtSize(bytes) {
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      if (bytes < 1024 ** 3)   return (bytes / 1024 ** 2).toFixed(1) + ' MB';
+      return (bytes / 1024 ** 3).toFixed(2) + ' GB';
+    }
+
+    async function loadMedias() {
+      const list = document.getElementById('media-list');
+      list.innerHTML = '<div class="empty-state">Carregando…</div>';
+      try {
+        const res = await fetch(`${API}/medias`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const medias = await res.json();
+        if (!res.ok) throw new Error(medias.message || 'Erro');
+        if (!medias.length) {
+          list.innerHTML = '<div class="empty-state">Nenhuma mídia baixada ainda.</div>';
+          return;
+        }
+        list.innerHTML = medias.map(m => `
+          <div class="media-card" id="mc-${m.id}">
+            ${m.thumbnail
+              ? `<img class="media-thumb" src="${m.thumbnail}" onerror="this.style.display='none'" />`
+              : `<div class="media-thumb-placeholder">${m.format === 'video' ? '🎬' : '🎵'}</div>`}
+            <div class="media-info">
+              <div class="media-title" title="${m.title}">${m.title}</div>
+              <div class="media-meta">
+                <span class="fmt-badge ${m.format}">${m.format}</span>
+                <span>${fmtDuration(m.duration)}</span>
+                <span>${fmtSize(m.size)}</span>
+              </div>
+              <div class="media-actions">
+                <button class="btn-play" onclick="playMedia('${m.id}','${m.mimeType}','${m.format}')">▶ Play</button>
+                <button class="btn-del"  onclick="deleteMedia('${m.id}')">🗑</button>
+              </div>
+            </div>
+          </div>`).join('');
       } catch (e) {
-        showMsg('admin-msg', e.message, false);
+        list.innerHTML = `<div class="empty-state" style="color:#f87171">${e.message}</div>`;
       }
     }
 
-    function doLogout() {
-      localStorage.removeItem('token');
-      localStorage.removeItem('currentUser');
-      token = null;
-      currentUser = null;
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('auth-panel').classList.remove('hidden');
-      init();
+    async function downloadMedia() {
+      const url    = document.getElementById('dl-url').value.trim();
+      const format = document.getElementById('dl-format').value;
+      const btn    = document.getElementById('dl-btn');
+      if (!url) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Baixando…';
+      showMsg('dl-msg', 'Download em andamento, aguarde…', true);
+
+      try {
+        const res = await fetch(`${API}/medias`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ url, format }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Erro no download');
+        document.getElementById('dl-url').value = '';
+        showMsg('dl-msg', `"${data.title}" baixado com sucesso!`, true);
+        loadMedias();
+      } catch (e) {
+        showMsg('dl-msg', e.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Baixar';
+      }
+    }
+
+    function playMedia(id, mimeType, format) {
+      const src = `${API}/medias/${id}/stream?token=${token}`;
+      const wrap  = document.getElementById('player-wrap');
+      const video = document.getElementById('media-video');
+      const audio = document.getElementById('media-audio');
+
+      video.pause(); audio.pause();
+      video.style.display = 'none';
+      audio.style.display = 'none';
+
+      if (format === 'video') {
+        video.src = src;
+        video.style.display = 'block';
+        video.load();
+        video.play();
+      } else {
+        audio.src = src;
+        audio.style.display = 'block';
+        audio.load();
+        audio.play();
+      }
+
+      wrap.classList.remove('hidden');
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      document.querySelectorAll('.media-card').forEach(c => c.classList.remove('playing'));
+      document.getElementById(`mc-${id}`)?.classList.add('playing');
+    }
+
+    function closePlayer() {
+      const video = document.getElementById('media-video');
+      const audio = document.getElementById('media-audio');
+      if (video) { video.pause(); video.src = ''; }
+      if (audio) { audio.pause(); audio.src = ''; }
+      document.getElementById('player-wrap')?.classList.add('hidden');
+      document.querySelectorAll('.media-card').forEach(c => c.classList.remove('playing'));
+    }
+
+    async function deleteMedia(id) {
+      if (!confirm('Apagar esta mídia e o arquivo?')) return;
+      try {
+        const res = await fetch(`${API}/medias/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          const d = await res.json();
+          throw new Error(d.message || 'Erro ao deletar');
+        }
+        const card = document.getElementById(`mc-${id}`);
+        if (card?.classList.contains('playing')) closePlayer();
+        card?.remove();
+        const list = document.getElementById('media-list');
+        if (!list.children.length)
+          list.innerHTML = '<div class="empty-state">Nenhuma mídia baixada ainda.</div>';
+      } catch (e) { alert(e.message); }
     }
 
     init();
