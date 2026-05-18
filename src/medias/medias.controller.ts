@@ -45,6 +45,16 @@ export class MediasController {
     return this.mediasService.stream(req.user.id, id, req, res);
   }
 
+  // token via query param: /medias/:id/export?token=JWT
+  @Get(':id/export')
+  exportFile(
+    @Param('id') id: string,
+    @Req() req: Request & { user: any },
+    @Res() res: Response,
+  ) {
+    return this.mediasService.export(req.user.id, id, res);
+  }
+
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string, @Req() req: any) {

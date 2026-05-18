@@ -1,3 +1,7 @@
+import { IsIn, IsInt } from 'class-validator';
+
 export class UpdateAccessLevelDto {
-  accessLevel: number;
+  @IsInt()
+  @IsIn([1, 2])
+  accessLevel!: number;
 }

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weber Server</title>
+  <script src="/socket.io/socket.io.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
@@ -102,6 +103,77 @@
     .btn-del { background: transparent; border: 1px solid #334155; color: #64748b; border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.78rem; cursor: pointer; }
     .btn-del:hover { border-color: #ef4444; color: #ef4444; }
     .empty-state { text-align: center; padding: 2rem; color: #475569; font-size: 0.88rem; }
+
+    /* ── chat ── */
+    .screen.chat-layout { max-width: 860px; display: none; flex-direction: column; height: calc(100vh - 4rem); }
+    .screen.chat-layout.active { display: flex; }
+    .chat-body { display: flex; flex: 1; gap: 0.75rem; overflow: hidden; }
+    .chat-sidebar { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; }
+    .chat-sidebar-actions { display: flex; gap: 0.4rem; }
+    .chat-sidebar-actions button { flex: 1; padding: 0.4rem 0; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.78rem; transition: all 0.15s; }
+    .chat-sidebar-actions button:hover { border-color: #38bdf8; color: #38bdf8; }
+    .conv-item { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 0.6rem 0.75rem; cursor: pointer; transition: all 0.15s; }
+    .conv-item:hover { border-color: #38bdf8; }
+    .conv-item.active { border-color: #38bdf8; background: #1e3a4a; }
+    .conv-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv-type { font-size: 0.7rem; color: #64748b; margin-top: 0.1rem; }
+    .conv-unread { display: inline-block; background: #38bdf8; color: #0f172a; border-radius: 20px; font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.45rem; margin-left: 0.4rem; }
+    .chat-main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; }
+    .chat-header { padding: 0.75rem 1rem; border-bottom: 1px solid #334155; font-weight: 600; font-size: 0.9rem; }
+    .chat-messages { flex: 1; overflow-y: auto; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .chat-placeholder { margin: auto; text-align: center; color: #475569; font-size: 0.85rem; }
+    .msg-row { display: flex; flex-direction: column; }
+    .msg-row.mine { align-items: flex-end; }
+    .msg-sender { font-size: 0.7rem; color: #64748b; margin-bottom: 0.15rem; }
+    .msg-bubble { max-width: 72%; padding: 0.45rem 0.75rem; border-radius: 10px; font-size: 0.875rem; line-height: 1.45; word-break: break-word; background: #0f172a; border: 1px solid #334155; }
+    .msg-row.mine .msg-bubble { background: #0c4a6e; border-color: #0369a1; }
+    .msg-time { font-size: 0.65rem; color: #475569; margin-top: 0.15rem; }
+    .chat-input-row { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid #334155; }
+    .chat-input-row input { flex: 1; margin-bottom: 0; }
+    .chat-input-row button { padding: 0 1.1rem; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer; font-size: 0.88rem; white-space: nowrap; }
+    .chat-input-row button:hover { background: #7dd3fc; }
+
+    /* ── files ── */
+    .files-toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }
+    .files-toolbar button { padding: 0.4rem 0.85rem; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.82rem; transition: all 0.15s; }
+    .files-toolbar button:hover { border-color: #38bdf8; color: #38bdf8; }
+    .files-toolbar button.active { border-color: #f87171; color: #f87171; }
+    .breadcrumb { display: flex; align-items: center; gap: 0.3rem; flex: 1; font-size: 0.82rem; color: #64748b; flex-wrap: wrap; }
+    .breadcrumb span { cursor: pointer; color: #38bdf8; }
+    .breadcrumb span:hover { text-decoration: underline; }
+    .breadcrumb .sep { color: #334155; }
+    .files-table { width: 100%; border-collapse: collapse; }
+    .files-table th { text-align: left; padding: 0.5rem 0.6rem; font-size: 0.7rem; color: #64748b; border-bottom: 1px solid #334155; text-transform: uppercase; letter-spacing: 0.05em; }
+    .files-table td { padding: 0.5rem 0.6rem; font-size: 0.84rem; border-bottom: 1px solid #1e293b; vertical-align: middle; }
+    .files-table tr:hover td { background: #1e293b; }
+    .file-icon { margin-right: 0.4rem; }
+    .file-name-cell { cursor: pointer; }
+    .file-name-cell:hover { color: #38bdf8; }
+    .file-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+    .file-actions button { background: transparent; border: 1px solid #334155; color: #94a3b8; border-radius: 6px; padding: 0.3rem 0.65rem; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+    .file-actions button:hover { border-color: #38bdf8; color: #38bdf8; }
+    .file-actions button.danger { border-color: #7f1d1d; color: #f87171; }
+    .file-actions button.danger:hover { border-color: #ef4444; color: #fff; background: #ef4444; }
+    .usage-bar-wrap { background: #0f172a; border-radius: 6px; height: 6px; margin-bottom: 0.5rem; overflow: hidden; }
+    .usage-bar { height: 100%; background: #38bdf8; border-radius: 6px; transition: width 0.3s; }
+    .usage-bar.warn { background: #f97316; }
+    .usage-bar.danger { background: #ef4444; }
+    .usage-label { font-size: 0.75rem; color: #64748b; }
+    .upload-drop { border: 2px dashed #334155; border-radius: 10px; padding: 1.5rem; text-align: center; color: #475569; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; margin-bottom: 0.75rem; }
+    .upload-drop:hover, .upload-drop.drag { border-color: #38bdf8; color: #38bdf8; }
+
+    /* ── modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal-overlay.hidden { display: none; }
+    .modal-box { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 1.5rem; width: 360px; max-height: 80vh; overflow-y: auto; }
+    .modal-title { font-weight: 700; font-size: 1rem; margin-bottom: 1rem; }
+    .user-pick-list { display: flex; flex-direction: column; gap: 0.4rem; max-height: 220px; overflow-y: auto; margin-bottom: 0.75rem; }
+    .user-pick-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.6rem; background: #0f172a; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+    .user-pick-item input[type=checkbox] { accent-color: #38bdf8; width: 15px; height: 15px; }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+    .modal-actions button { padding: 0.4rem 1rem; border-radius: 8px; border: 1px solid #334155; background: transparent; color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
+    .modal-actions button.confirm { background: #38bdf8; border-color: #38bdf8; color: #0f172a; font-weight: 700; }
+
   </style>
 </head>
 <body>
@@ -146,6 +218,16 @@
         <span class="icon">🎬</span>
         <span class="label">Mídias</span>
         <span class="desc">Seus vídeos e áudios</span>
+      </div>
+      <div class="nav-card" onclick="go('chat')">
+        <span class="icon">💬</span>
+        <span class="label">Chat</span>
+        <span class="desc">Mensagens e grupos</span>
+      </div>
+      <div class="nav-card" onclick="go('files')">
+        <span class="icon">📁</span>
+        <span class="label">Arquivos</span>
+        <span class="desc">Upload, pastas e lixeira</span>
       </div>
       <!-- admin cards injetados via JS -->
     </div>
@@ -212,6 +294,122 @@
     <div id="media-list" class="media-list"></div>
   </div>
 
+  <!-- ══ CHAT ══ -->
+  <div id="screen-chat" class="screen chat-layout">
+    <div class="topbar" style="flex-shrink:0">
+      <button class="back-btn" onclick="go('hub')">← Voltar</button>
+      <span class="page-title">Chat</span>
+    </div>
+    <div class="chat-body">
+      <div class="chat-sidebar">
+        <div class="chat-sidebar-actions">
+          <button onclick="openDmModal()">+ DM</button>
+          <button onclick="openGroupModal()">+ Grupo</button>
+        </div>
+        <div id="conv-list"></div>
+      </div>
+      <div class="chat-main">
+        <div class="chat-header" id="chat-header">Selecione uma conversa</div>
+        <div class="chat-messages" id="chat-messages">
+          <div class="chat-placeholder">Escolha uma conversa no painel esquerdo.</div>
+        </div>
+        <div class="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Mensagem…" autocomplete="off"
+            onkeydown="if(event.key==='Enter') sendMessage()" />
+          <button onclick="sendMessage()">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ARQUIVOS ══ -->
+  <div id="screen-files" class="screen wide">
+    <div class="topbar">
+      <button class="back-btn" onclick="go('hub')">← Voltar</button>
+      <span class="page-title">Arquivos</span>
+      <div class="topbar-right">
+        <button class="ghost" id="trash-toggle-btn" onclick="toggleTrash()" style="font-size:0.8rem;padding:0.35rem 0.75rem">🗑 Lixeira</button>
+      </div>
+    </div>
+
+    <!-- usage bar -->
+    <div style="margin-bottom:1rem">
+      <div class="usage-bar-wrap"><div id="usage-bar" class="usage-bar" style="width:0%"></div></div>
+      <div id="usage-label" class="usage-label">Calculando uso…</div>
+    </div>
+
+    <!-- normal view -->
+    <div id="files-normal">
+      <div class="files-toolbar">
+        <div class="breadcrumb" id="breadcrumb"></div>
+        <button onclick="openMkdirModal()">+ Pasta</button>
+        <label style="padding:0.4rem 0.85rem;border-radius:8px;border:1px solid #334155;color:#94a3b8;cursor:pointer;font-size:0.82rem;transition:all 0.15s" onmouseover="this.style.borderColor='#38bdf8';this.style.color='#38bdf8'" onmouseout="this.style.borderColor='#334155';this.style.color='#94a3b8'">
+          ⬆ Upload
+          <input type="file" multiple id="file-input" style="display:none" onchange="uploadFiles(this.files)" />
+        </label>
+      </div>
+
+      <div id="upload-drop" class="upload-drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)">
+        Arraste arquivos aqui para fazer upload
+      </div>
+
+      <div class="card" style="max-width:100%;padding:0">
+        <table class="files-table">
+          <thead><tr><th>Nome</th><th>Tamanho</th><th>Data</th><th></th></tr></thead>
+          <tbody id="files-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- trash view -->
+    <div id="files-trash" class="hidden">
+      <div style="margin-bottom:0.75rem;font-size:0.82rem;color:#64748b">Itens na lixeira são apagados automaticamente após 7 dias ou quando o armazenamento estiver cheio.</div>
+      <div class="card" style="max-width:100%;padding:0">
+        <table class="files-table">
+          <thead><tr><th>Nome</th><th>Pasta original</th><th>Excluído em</th><th></th></tr></thead>
+          <tbody id="trash-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL MKDIR ══ -->
+  <div id="modal-mkdir" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-title">Nova pasta</div>
+      <input id="mkdir-name" type="text" placeholder="Nome da pasta" autocomplete="off" onkeydown="if(event.key==='Enter') confirmMkdir()" />
+      <div class="modal-actions">
+        <button onclick="document.getElementById('modal-mkdir').classList.add('hidden')">Cancelar</button>
+        <button class="confirm" onclick="confirmMkdir()">Criar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL DM ══ -->
+  <div id="modal-dm" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-title">Nova conversa direta</div>
+      <div id="dm-user-list" class="user-pick-list"></div>
+      <div class="modal-actions">
+        <button onclick="closeDmModal()">Cancelar</button>
+        <button class="confirm" onclick="createDm()">Abrir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL GRUPO ══ -->
+  <div id="modal-group" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-title">Novo grupo</div>
+      <input id="group-name" type="text" placeholder="Nome do grupo" autocomplete="off" />
+      <div id="group-user-list" class="user-pick-list"></div>
+      <div class="modal-actions">
+        <button onclick="closeGroupModal()">Cancelar</button>
+        <button class="confirm" onclick="createGroup()">Criar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ USUÁRIOS (admin) ══ -->
   <div id="screen-users" class="screen wide">
     <div class="topbar">
@@ -221,9 +419,9 @@
     <div class="card" style="max-width:100%">
       <div class="card-title">Novo Usuário</div>
       <div class="inline-form">
-        <input type="text"     id="new-name"     placeholder="Nome" />
-        <input type="email"    id="new-email"    placeholder="Email" />
-        <input type="password" id="new-password" placeholder="Senha" />
+        <input type="text"     id="new-name"     placeholder="Nome"  autocomplete="off" />
+        <input type="email"    id="new-email"    placeholder="Email" autocomplete="off" />
+        <input type="password" id="new-password" placeholder="Senha" autocomplete="new-password" />
         <button class="sm green" onclick="createUser()" style="padding:0.6rem 1rem">+ Criar</button>
       </div>
       <div id="create-msg" class="msg hidden"></div>
@@ -255,6 +453,8 @@
       if (screenId === 'users')  loadUsers();
       if (screenId === 'profile') fillProfile();
       if (screenId === 'medias') loadMedias();
+      if (screenId === 'chat')   enterChat();
+      if (screenId === 'files')  go_files_hook();
       if (screenId !== 'medias') closePlayer();
     }
 
@@ -476,6 +676,7 @@
               </div>
               <div class="media-actions">
                 <button class="btn-play" onclick="playMedia('${m.id}','${m.mimeType}','${m.format}')">▶ Play</button>
+                <a class="btn-play" style="text-decoration:none" href="${API}/medias/${m.id}/export?token=${token}" download>⬇ Baixar</a>
                 <button class="btn-del"  onclick="deleteMedia('${m.id}')">🗑</button>
               </div>
             </div>
@@ -570,6 +771,383 @@
         if (!list.children.length)
           list.innerHTML = '<div class="empty-state">Nenhuma mídia baixada ainda.</div>';
       } catch (e) { alert(e.message); }
+    }
+
+    /* ── files ── */
+    let filesPath = '/';
+    let filesTrashMode = false;
+
+    function go_files_hook() { filesPath = '/'; filesTrashMode = false; loadFiles(); loadUsage(); }
+
+    function fmtBytes(b) {
+      if (!b) return '—';
+      if (b < 1024) return b + ' B';
+      if (b < 1024 ** 2) return (b / 1024).toFixed(1) + ' KB';
+      if (b < 1024 ** 3) return (b / 1024 ** 2).toFixed(1) + ' MB';
+      return (b / 1024 ** 3).toFixed(2) + ' GB';
+    }
+
+    async function loadUsage() {
+      const res = await fetch(`${API}/files/usage`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const { usedBytes, trashBytes, limitBytes } = await res.json();
+      const pct = Math.min(100, ((usedBytes + trashBytes) / limitBytes) * 100);
+      const bar = document.getElementById('usage-bar');
+      bar.style.width = pct + '%';
+      bar.className = 'usage-bar' + (pct > 90 ? ' danger' : pct > 70 ? ' warn' : '');
+      document.getElementById('usage-label').textContent =
+        `${fmtBytes(usedBytes)} usados · ${fmtBytes(trashBytes)} na lixeira · limite ${fmtBytes(limitBytes)}`;
+    }
+
+    function buildBreadcrumb(p) {
+      const el = document.getElementById('breadcrumb');
+      const parts = p === '/' ? [] : p.replace(/^\//, '').split('/');
+      let html = `<span onclick="navigateTo('/')">🏠 Raiz</span>`;
+      let acc = '';
+      for (const part of parts) {
+        acc += '/' + part;
+        const cur = acc;
+        html += `<span class="sep">/</span><span onclick="navigateTo('${cur}')">${part}</span>`;
+      }
+      el.innerHTML = html;
+    }
+
+    async function navigateTo(p) {
+      filesPath = p;
+      await loadFiles();
+    }
+
+    function fileIcon(item) {
+      if (item.isDirectory) return '📁';
+      if (item.virtual && item.mediaId) return item.mimeType?.startsWith('video') ? '🎬' : '🎵';
+      const m = item.mimeType || '';
+      if (m.startsWith('image/')) return '🖼️';
+      if (m.startsWith('video/')) return '🎬';
+      if (m.startsWith('audio/')) return '🎵';
+      if (m.includes('pdf')) return '📄';
+      if (m.includes('zip') || m.includes('tar') || m.includes('gz')) return '🗜️';
+      return '📄';
+    }
+
+    async function loadFiles() {
+      buildBreadcrumb(filesPath);
+      const tbody = document.getElementById('files-tbody');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#475569;text-align:center;padding:1rem">Carregando…</td></tr>';
+
+      const res = await fetch(`${API}/files?path=${encodeURIComponent(filesPath)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const items = await res.json();
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#475569;text-align:center;padding:1rem">Pasta vazia</td></tr>';
+        return;
+      }
+
+      let rows = '';
+      if (filesPath !== '/') {
+        const parent = filesPath.substring(0, filesPath.lastIndexOf('/')) || '/';
+        rows += `<tr><td colspan="4" class="file-name-cell" onclick="navigateTo('${parent}')" style="color:#64748b">⬆ ..</td></tr>`;
+      }
+
+      rows += items.map(item => {
+        const isDir = item.isDirectory;
+        const isVirtual = !!item.virtual;
+        const destPath = (filesPath === '/' ? '' : filesPath) + '/' + item.name;
+        const nameCell = isDir
+          ? `<td class="file-name-cell" onclick="navigateTo('${destPath}')">${fileIcon(item)} <span>${item.name}</span></td>`
+          : `<td>${fileIcon(item)} ${item.name}</td>`;
+
+        const actions = isVirtual
+          ? (item.mediaId
+              ? `<td><div class="file-actions"><a href="${API}/medias/${item.mediaId}/export?token=${token}" download style="background:transparent;border:1px solid #334155;color:#94a3b8;border-radius:6px;padding:0.3rem 0.65rem;font-size:0.78rem;text-decoration:none;cursor:pointer">⬇ Baixar</a></div></td>`
+              : '<td></td>')
+          : (isDir
+            ? `<td><div class="file-actions"><button class="danger" onclick="trashItem('${item.id}')">🗑 Excluir</button></div></td>`
+            : `<td><div class="file-actions"><button onclick="downloadFile('${item.id}')">⬇ Baixar</button><button class="danger" onclick="trashItem('${item.id}')">🗑 Excluir</button></div></td>`);
+
+        return `<tr>
+          ${nameCell}
+          <td style="color:#64748b">${fmtBytes(item.size)}</td>
+          <td style="color:#64748b;white-space:nowrap">${item.createdAt ? new Date(item.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
+          ${actions}
+        </tr>`;
+      }).join('');
+
+      tbody.innerHTML = rows;
+    }
+
+    async function loadTrash() {
+      const tbody = document.getElementById('trash-tbody');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#475569;text-align:center;padding:1rem">Carregando…</td></tr>';
+      const res = await fetch(`${API}/files/trash`, { headers: { Authorization: `Bearer ${token}` } });
+      const items = await res.json();
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#475569;text-align:center;padding:1rem">Lixeira vazia</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(item => `
+        <tr>
+          <td>${fileIcon(item)} ${item.name}</td>
+          <td style="color:#64748b">${item.originalDirPath || '/'}</td>
+          <td style="color:#64748b;white-space:nowrap">${new Date(item.trashedAt).toLocaleDateString('pt-BR')}</td>
+          <td><div class="file-actions">
+            <button onclick="restoreItem('${item.id}')">↩ Restaurar</button>
+            <button class="danger" onclick="permDelete('${item.id}')">🗑 Apagar para sempre</button>
+          </div></td>
+        </tr>`).join('');
+    }
+
+    function toggleTrash() {
+      filesTrashMode = !filesTrashMode;
+      document.getElementById('files-normal').classList.toggle('hidden', filesTrashMode);
+      document.getElementById('files-trash').classList.toggle('hidden', !filesTrashMode);
+      document.getElementById('trash-toggle-btn').classList.toggle('active', filesTrashMode);
+      if (filesTrashMode) loadTrash();
+    }
+
+    async function uploadFiles(fileList) {
+      if (!fileList.length) return;
+      const form = new FormData();
+      for (const f of fileList) form.append('files', f);
+      const res = await fetch(`${API}/files/upload?path=${encodeURIComponent(filesPath)}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (res.ok) { loadFiles(); loadUsage(); }
+      else { const d = await res.json(); alert(d.message || 'Erro no upload'); }
+      document.getElementById('file-input').value = '';
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('upload-drop').classList.remove('drag');
+      uploadFiles(e.dataTransfer.files);
+    }
+
+    function openMkdirModal() {
+      document.getElementById('mkdir-name').value = '';
+      document.getElementById('modal-mkdir').classList.remove('hidden');
+      setTimeout(() => document.getElementById('mkdir-name').focus(), 50);
+    }
+
+    async function confirmMkdir() {
+      const name = document.getElementById('mkdir-name').value.trim();
+      if (!name) return;
+      const res = await fetch(`${API}/files/mkdir`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, dirPath: filesPath }),
+      });
+      document.getElementById('modal-mkdir').classList.add('hidden');
+      if (res.ok) loadFiles();
+      else { const d = await res.json(); alert(d.message || 'Erro'); }
+    }
+
+    function downloadFile(id) {
+      window.open(`${API}/files/download/${id}?token=${token}`, '_blank');
+    }
+
+    async function trashItem(id) {
+      if (!confirm('Mover para a lixeira?')) return;
+      const res = await fetch(`${API}/files/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok || res.status === 204) { loadFiles(); loadUsage(); }
+      else { const d = await res.json(); alert(d.message || 'Erro'); }
+    }
+
+    async function restoreItem(id) {
+      const res = await fetch(`${API}/files/restore/${id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) { loadTrash(); loadUsage(); }
+      else { const d = await res.json(); alert(d.message || 'Erro'); }
+    }
+
+    async function permDelete(id) {
+      if (!confirm('Apagar permanentemente? Esta ação não pode ser desfeita.')) return;
+      const res = await fetch(`${API}/files/trash/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok || res.status === 204) { loadTrash(); loadUsage(); }
+      else { const d = await res.json(); alert(d.message || 'Erro'); }
+    }
+
+    /* ── chat ── */
+    let socket = null;
+    let activeConvId = null;
+    let conversations = [];
+    let allUsers = [];
+
+    function timeLabel(iso) {
+      const d = new Date(iso);
+      return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function enterChat() {
+      if (!socket) connectSocket();
+      await loadConversations();
+    }
+
+    function connectSocket() {
+      const s = io(API, { auth: { token }, transports: ['websocket'] });
+      socket = s;
+      s.on('new_message', (msg) => {
+        if (msg.conversationId === activeConvId) appendMessage(msg);
+      });
+    }
+
+    async function loadConversations() {
+      const res = await fetch(`${API}/chat/conversations`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      conversations = await res.json();
+      renderConvList();
+    }
+
+    function convLabel(c) {
+      if (c.type === 'global') return '🌐 Geral';
+      if (c.type === 'group')  return '👥 ' + c.name;
+      return '💬 DM';
+    }
+
+    function convTypeName(c) {
+      if (c.type === 'global') return 'Grupo global';
+      if (c.type === 'group')  return 'Grupo';
+      return 'Conversa direta';
+    }
+
+    function renderConvList() {
+      const el = document.getElementById('conv-list');
+      el.innerHTML = conversations.map(c => `
+        <div class="conv-item${c.id === activeConvId ? ' active' : ''}" onclick="openConv('${c.id}')">
+          <div class="conv-name">${convLabel(c)}</div>
+          <div class="conv-type">${convTypeName(c)}</div>
+        </div>`).join('');
+    }
+
+    async function openConv(id) {
+      activeConvId = id;
+      renderConvList();
+      const conv = conversations.find(c => c.id === id);
+      document.getElementById('chat-header').textContent = conv ? convLabel(conv) : id;
+
+      if (socket) socket.emit('join_conversation', { conversationId: id });
+
+      const res = await fetch(`${API}/chat/conversations/${id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const msgs = await res.json();
+      const box = document.getElementById('chat-messages');
+      box.innerHTML = msgs.length ? '' : '<div class="chat-placeholder">Nenhuma mensagem ainda.</div>';
+      msgs.forEach(m => appendMessage(m, false));
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function appendMessage(msg, scroll = true) {
+      const box = document.getElementById('chat-messages');
+      const placeholder = box.querySelector('.chat-placeholder');
+      if (placeholder) placeholder.remove();
+      const mine = String(msg.userId) === String(currentUser.id);
+      const row = document.createElement('div');
+      row.className = 'msg-row' + (mine ? ' mine' : '');
+      row.innerHTML = `
+        ${!mine ? `<div class="msg-sender">${msg.senderName}</div>` : ''}
+        <div class="msg-bubble">${escHtml(msg.content)}</div>
+        <div class="msg-time">${timeLabel(msg.createdAt)}</div>`;
+      box.appendChild(row);
+      if (scroll) box.scrollTop = box.scrollHeight;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const content = input.value.trim();
+      if (!content || !activeConvId || !socket) return;
+      socket.emit('send_message', { conversationId: activeConvId, content });
+      input.value = '';
+    }
+
+    /* ── DM modal ── */
+    async function openDmModal() {
+      await fetchAllUsers();
+      const list = document.getElementById('dm-user-list');
+      const others = allUsers.filter(u => u.id !== currentUser.id);
+      list.innerHTML = others.map(u => `
+        <label class="user-pick-item">
+          <input type="radio" name="dm-user" value="${u.id}" />
+          <span>${u.name} <span style="color:#64748b;font-size:0.75rem">${u.email}</span></span>
+        </label>`).join('');
+      document.getElementById('modal-dm').classList.remove('hidden');
+    }
+
+    function closeDmModal() {
+      document.getElementById('modal-dm').classList.add('hidden');
+    }
+
+    async function createDm() {
+      const sel = document.querySelector('input[name="dm-user"]:checked');
+      if (!sel) return;
+      const res = await fetch(`${API}/chat/conversations/direct`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetId: sel.value }),
+      });
+      const conv = await res.json();
+      closeDmModal();
+      if (!conversations.find(c => c.id === conv.id)) conversations.push(conv);
+      renderConvList();
+      openConv(conv.id);
+    }
+
+    /* ── Group modal ── */
+    async function openGroupModal() {
+      await fetchAllUsers();
+      const list = document.getElementById('group-user-list');
+      const others = allUsers.filter(u => u.id !== currentUser.id);
+      list.innerHTML = others.map(u => `
+        <label class="user-pick-item">
+          <input type="checkbox" value="${u.id}" />
+          <span>${u.name} <span style="color:#64748b;font-size:0.75rem">${u.email}</span></span>
+        </label>`).join('');
+      document.getElementById('group-name').value = '';
+      document.getElementById('modal-group').classList.remove('hidden');
+    }
+
+    function closeGroupModal() {
+      document.getElementById('modal-group').classList.add('hidden');
+    }
+
+    async function createGroup() {
+      const name = document.getElementById('group-name').value.trim();
+      if (!name) return;
+      const checked = [...document.querySelectorAll('#group-user-list input:checked')].map(i => i.value);
+      if (!checked.length) return;
+      const res = await fetch(`${API}/chat/conversations/group`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name, memberIds: checked }),
+      });
+      const conv = await res.json();
+      closeGroupModal();
+      conversations.push(conv);
+      renderConvList();
+      openConv(conv.id);
+    }
+
+    async function fetchAllUsers() {
+      if (allUsers.length) return;
+      const res = await fetch(`${API}/chat/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) allUsers = await res.json();
     }
 
     init();

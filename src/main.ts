@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   fs.mkdirSync('./storage/medias', { recursive: true });
+  fs.mkdirSync('./storage/files', { recursive: true });
+  fs.mkdirSync('./storage/trash', { recursive: true });
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.enableCors();

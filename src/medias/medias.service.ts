@@ -139,6 +139,24 @@ export class MediasService {
     }
   }
 
+  async export(userId: number, id: string, res: Response): Promise<void> {
+    const media = await this.findOne(userId, id);
+
+    const stat = await fs.promises.stat(media.filePath).catch(() => null);
+    if (!stat) throw new NotFoundException('File not found on disk');
+
+    const ext = media.filePath.split('.').pop();
+    const filename = `${media.title.replace(/[^\w\s-]/g, '').trim()}.${ext}`;
+
+    res.set({
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+      'Content-Type': media.mimeType,
+      'Content-Length': stat.size,
+    });
+
+    fs.createReadStream(media.filePath).pipe(res);
+  }
+
   async remove(userId: number, id: string): Promise<void> {
     const media = await this.findOne(userId, id);
     await fs.promises.unlink(media.filePath).catch(() => {});
